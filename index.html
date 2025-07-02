@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charge Log - Tracciamento Ricariche Auto Elettriche</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+
+        .auth-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .progress-counter {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .auth-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .auth-btn:hover {
+            background: #3367d6;
+            transform: translateY(-2px);
+        }
+
+        .auth-btn.connected {
+            background: #34a853;
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .form-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.85em;
+        }
+
+        .form-group input {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .readings-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .readings-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .readings-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .readings-table th,
+        .readings-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .readings-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .readings-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .readings-table tr.latest {
+            background: #e8f5e8;
+            font-weight: bold;
+        }
+
+        .stats-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .stats-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .charts-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .charts-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .chart-container {
+            margin-bottom: 30px;
+            height: 300px;
+        }
+
+        .message {
+            text-align: center;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .message.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 2px solid #bbdefb;
+        }
+
+        .message.success {
+            background: #e8f5e8;
+            color: #388e3c;
+            border: 2px solid #c8e6c9;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .auth-section {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .readings-table {
+                font-size: 0.8em;
+            }
+            
+            .readings-table th,
+            .readings-table td {
+                padding: 8px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header con Autenticazione -->
+        <div class="header">
+            <h1>⚡ Charge Log</h1>
+            <div class="auth-section">
+                <div class="progress-counter">
+                    Letture: <span id="readingCount">0</span>/10
+                </div>
+                <button id="authBtn" class="auth-btn">🔐 Accedi con Google</button>
+            </div>
+            <div id="authStatus" class="message info hidden">
+                Modalità locale attiva - I dati vengono salvati nel browser
+            </div>
+        </div>
+
+        <!-- Form di Inserimento -->
+        <div class="form-section">
+            <h2>📝 Nuova Lettura di Ricarica</h2>
+            <form id="chargingForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="kilometers">Chilometri (contachilometri)</label>
+                        <input type="number" id="kilometers" name="kilometers" required min="0" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="batteryStart">% Batteria Inizio</label>
+                        <input type="number" id="batteryStart" name="batteryStart" required min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="batteryEnd">% Batteria Fine</label>
+                        <input type="number" id="batteryEnd" name="batteryEnd" required min="0" max="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="kwCharged">kW Caricati</label>
+                        <input type="number" id="kwCharged" name="kwCharged" required min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="chargingCost">Costo Ricarica (€)</label>
+                        <input type="number" id="chargingCost" name="chargingCost" required min="0" step="0.01">
+                    </div>
+                </div>
+                <button type="submit" class="add-btn">➕ Aggiungi Lettura</button>
+            </form>
+            <div id="formMessage" class="message success hidden"></div>
+        </div>
+
+        <!-- Griglia delle Letture -->
+        <div class="readings-section">
+            <h2>📊 Storico Letture</h2>
+            <div id="noReadings" class="message info">
+                Nessuna lettura presente. Aggiungi la tua prima sessione di ricarica!
+            </div>
+            <table id="readingsTable" class="readings-table hidden">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Km</th>
+                        <th>% Inizio</th>
+                        <th>% Fine</th>
+                        <th>kW</th>
+                        <th>Costo €</th>
+                        <th>€/kW</th>
+                    </tr>
+                </thead>
+                <tbody id="readingsBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Sezione Statistiche -->
+        <div id="statsSection" class="stats-section hidden">
+            <h2>📈 Analisi e Statistiche</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="batteryCapacity">-</h3>
+                    <p>Capacità Stimata Batteria (kWh)</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="avgCostPerKw">-</h3>
+                    <p>Costo Medio per kW (€)</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="avgCostPerKm">-</h3>
+                    <p>Costo Medio per km (€)</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="efficiency">-</h3>
+                    <p>Efficienza (kWh/100km)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sezione Grafici -->
+        <div id="chartsSection" class="charts-section hidden">
+            <h2>📊 Grafici</h2>
+            <div class="chart-container">
+                <canvas id="costTrendChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="energyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function ChargeLog() {
+            this.readings = JSON.parse(localStorage.getItem('chargeLogReadings')) || [];
+            this.isAuthenticated = localStorage.getItem('chargeLogAuth') === 'true';
+            this.costTrendChart = null;
+            this.energyChart = null;
+            
+            this.init();
+        }
+
+        ChargeLog.prototype.init = function() {
+            var self = this;
+            this.updateUI();
+            this.updateStats();
+            this.updateCharts();
+            
+            document.getElementById('chargingForm').addEventListener('submit', function(e) {
+                self.handleFormSubmit(e);
+            });
+            
+            document.getElementById('authBtn').addEventListener('click', function() {
+                self.toggleAuth();
+            });
+        };
+
+        ChargeLog.prototype.handleFormSubmit = function(e) {
+            e.preventDefault();
+            
+            var formData = new FormData(e.target);
+            var reading = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('it-IT'),
+                kilometers: parseInt(formData.get('kilometers')),
+                batteryStart: parseInt(formData.get('batteryStart')),
+                batteryEnd: parseInt(formData.get('batteryEnd')),
+                kwCharged: parseFloat(formData.get('kwCharged')),
+                chargingCost: parseFloat(formData.get('chargingCost')),
+                costPerKw: (parseFloat(formData.get('chargingCost')) / parseFloat(formData.get('kwCharged'))).toFixed(3)
+            };
+            
+            if (reading.batteryEnd <= reading.batteryStart) {
+                alert('La percentuale finale deve essere maggiore di quella iniziale!');
+                return;
+            }
+            
+            this.readings.push(reading);
+            this.saveData();
+            this.updateUI();
+            this.updateStats();
+            this.updateCharts();
+            
+            e.target.reset();
+            this.showMessage('Lettura aggiunta con successo!');
+        };
+
+        ChargeLog.prototype.saveData = function() {
+            localStorage.setItem('chargeLogReadings', JSON.stringify(this.readings));
+            
+            if (this.isAuthenticated) {
+                console.log('Sincronizzazione con Google Sheets simulata');
+            }
+        };
+
+        ChargeLog.prototype.updateUI = function() {
+            document.getElementById('readingCount').textContent = this.readings.length;
+            
+            if (this.isAuthenticated) {
+                document.getElementById('authBtn').textContent = '✅ Connesso a Google';
+                document.getElementById('authBtn').className = 'auth-btn connected';
+                document.getElementById('authStatus').textContent = 'Dati sincronizzati con Google Sheets';
+                document.getElementById('authStatus').className = 'message success';
+                document.getElementById('authStatus').classList.remove('hidden');
+            } else {
+                document.getElementById('authStatus').classList.remove('hidden');
+            }
+            
+            if (this.readings.length === 0) {
+                document.getElementById('noReadings').classList.remove('hidden');
+                document.getElementById('readingsTable').classList.add('hidden');
+            } else {
+                document.getElementById('noReadings').classList.add('hidden');
+                document.getElementById('readingsTable').classList.remove('hidden');
+                this.updateTable();
+            }
+            
+            if (this.readings.length >= 3) {
+                document.getElementById('statsSection').classList.remove('hidden');
+                document.getElementById('chartsSection').classList.remove('hidden');
+            }
+        };
+
+        ChargeLog.prototype.updateTable = function() {
+            var tbody = document.getElementById('readingsBody');
+            tbody.innerHTML = '';
+            
+            for (var i = this.readings.length - 1; i >= 0; i--) {
+                var reading = this.readings[i];
+                var row = tbody.insertRow();
+                if (i === this.readings.length - 1) {
+                    row.className = 'latest';
+                }
+                
+                row.insertCell(0).textContent = reading.date;
+                row.insertCell(1).textContent = reading.kilometers.toLocaleString();
+                row.insertCell(2).textContent = reading.batteryStart + '%';
+                row.insertCell(3).textContent = reading.batteryEnd + '%';
+                row.insertCell(4).textContent = reading.kwCharged.toFixed(2);
+                row.insertCell(5).textContent = '€' + reading.chargingCost.toFixed(2);
+                row.insertCell(6).textContent = '€' + reading.costPerKw;
+            }
+        };
+
+        ChargeLog.prototype.updateStats = function() {
+            if (this.readings.length < 3) return;
+            
+            var totalCost = 0;
+            var totalKw = 0;
+            var totalKm = 0;
+            var batteryCapacities = [];
+            
+            for (var i = 0; i < this.readings.length; i++) {
+                var reading = this.readings[i];
+                totalCost += reading.chargingCost;
+                totalKw += reading.kwCharged;
+                
+                if (i > 0) {
+                    var prevReading = this.readings[i - 1];
+                    totalKm += reading.kilometers - prevReading.kilometers;
+                }
+                
+                var batteryDiff = reading.batteryEnd - reading.batteryStart;
+                if (batteryDiff > 0) {
+                    var estimatedCapacity = (reading.kwCharged / batteryDiff) * 100;
+                    batteryCapacities.push(estimatedCapacity);
+                }
+            }
+            
+            var avgBatteryCapacity = batteryCapacities.reduce(function(a, b) { return a + b; }, 0) / batteryCapacities.length;
+            var avgCostPerKw = totalCost / totalKw;
+            var avgCostPerKm = totalKm > 0 ? totalCost / totalKm : 0;
+            var efficiency = totalKm > 0 ? (totalKw / totalKm) * 100 : 0;
+            
+            document.getElementById('batteryCapacity').textContent = avgBatteryCapacity.toFixed(1);
+            document.getElementById('avgCostPerKw').textContent = '€' + avgCostPerKw.toFixed(3);
+            document.getElementById('avgCostPerKm').textContent = totalKm > 0 ? '€' + avgCostPerKm.toFixed(3) : '-';
+            document.getElementById('efficiency').textContent = totalKm > 0 ? efficiency.toFixed(2) : '-';
+        };
+
+        ChargeLog.prototype.updateCharts = function() {
+            if (this.readings.length < 3) return;
+            
+            var dates = [];
+            var costs = [];
+            var energies = [];
+            
+            for (var i = 0; i < this.readings.length; i++) {
+                var reading = this.readings[i];
+                dates.push(reading.date);
+                costs.push(parseFloat(reading.costPerKw));
+                energies.push(reading.kwCharged);
+            }
+            
+            if (this.costTrendChart) {
+                this.costTrendChart.destroy();
+            }
+            
+            var ctx1 = document.getElementById('costTrendChart').getContext('2d');
+            this.costTrendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Costo per kW (€)',
+                        data: costs,
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Trend Costo per kW nel Tempo'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+            
+            if (this.energyChart) {
+                this.energyChart.destroy();
+            }
+            
+            var ctx2 = document.getElementById('energyChart').getContext('2d');
+            this.energyChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Energia Caricata (kW)',
+                        data: energies,
+                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
+                        borderColor: 'rgb(118, 75, 162)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Energia Caricata per Sessione'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        };
+
+        ChargeLog.prototype.toggleAuth = function() {
+            if (!this.isAuthenticated) {
+                var confirmed = confirm('Vuoi connettere l\'app a Google per salvare i dati su Google Sheets?');
+                if (confirmed) {
+                    this.isAuthenticated = true;
+                    localStorage.setItem('chargeLogAuth', 'true');
+                    this.showMessage('Autenticazione simulata - In una versione completa si connetterebbe a Google Sheets');
+                }
+            } else {
+                var confirmed = confirm('Vuoi disconnettere l\'account Google? I dati rimarranno salvati localmente.');
+                if (confirmed) {
+                    this.isAuthenticated = false;
+                    localStorage.setItem('chargeLogAuth', 'false');
+                }
+            }
+            this.updateUI();
+        };
+
+        ChargeLog.prototype.showMessage = function(text) {
+            var messageEl = document.getElementById('formMessage');
+            messageEl.textContent = text;
+            messageEl.classList.remove('hidden');
+            
+            setTimeout(function() {
+                messageEl.classList.add('hidden');
+            }, 3000);
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            new ChargeLog();
+        });
+    </script>
+</body>
+</html>
